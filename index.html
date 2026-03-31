@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dhumball Score Trekker</title>
+  <title>Dhumball Score Tracker</title>
+  <meta name="theme-color" content="#2563eb" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
   <style>
     :root { --bg:#f3f4f6; --card:#fff; --line:#e5e7eb; --text:#111827; --muted:#6b7280; --accent:#2563eb; --soft:#eff6ff; --good:#065f46; --goodbg:#ecfdf5; }
     * { box-sizing:border-box; } body { margin:0; font-family:Arial,Helvetica,sans-serif; background:var(--bg); color:var(--text); }
@@ -31,7 +35,7 @@
   <div class="wrap">
     <div class="grid top-grid">
       <div class="card">
-        <div class="eyebrow">Dhumball Score Trekker</div>
+        <div class="eyebrow">Dhumball Score Tracker</div>
         <div class="title">Simple web app for friends</div>
         <div class="subtitle">Unlimited rounds, proper negative-total logic, face value multiplier, live leaderboard, and final settlement showing who owes whom.</div>
         <div class="metrics">
@@ -43,7 +47,7 @@
       </div>
       <div class="card">
         <label for="gameName">Game name</label>
-        <input id="gameName" value="Dhumball Score Trekker" />
+        <input id="gameName" value="Dhumball Score Tracker" />
         <div class="spacer"></div>
         <div class="row">
           <div><label for="faceValue">Face value</label><input id="faceValue" type="number" min="1" step="1" value="1" /></div>
@@ -54,7 +58,7 @@
         <div class="spacer"></div>
         <div id="saveStatus" class="tiny" aria-live="polite"></div>
         <div class="spacer"></div>
-        <div class="btn-row"><button class="secondary" id="saveGameBtn">Save Game</button><button class="secondary" id="resumeGameBtn">Resume Saved Game</button><button class="secondary" id="newGameBtn">New Game</button><button class="secondary" id="shareBtn">Share Summary</button><button class="secondary" id="exportBtn">Export Summary</button></div>
+        <div class="btn-row"><button class="secondary" id="saveGameBtn">Save Game</button><button class="secondary" id="resumeGameBtn">Resume Saved Game</button><button class="secondary" id="newGameBtn">New Game</button><button class="secondary" id="installAppBtn" style="display:none;">Install App</button><button class="secondary" id="shareBtn">Share Summary</button><button class="secondary" id="exportBtn">Export Summary</button></div>
       </div>
     </div>
     <div class="spacer"></div>
@@ -85,12 +89,13 @@
   </div>
 
   <script>
-    const STORAGE_KEY = 'dhumball-score-trekker-v7';
+    const STORAGE_KEY = 'dhumball-score-tracker-v7';
     const LEGACY_STORAGE_KEYS = ['dhumal-score-trekker-negative-fix-v4', 'dhumal-score-trekker-negative-fix-v3'];
     const paletteCount = 6;
+    let deferredInstallPrompt = null;
 
     function createDefaultState(){
-      return { gameName:'Dhumball Score Trekker', faceValue:1, players:['Player 1','Player 2','Player 3','Player 4'], winner:'Player 1', negatives:{}, rounds:[] };
+      return { gameName:'Dhumball Score Tracker', faceValue:1, players:['Player 1','Player 2','Player 3','Player 4'], winner:'Player 1', negatives:{}, rounds:[] };
     }
 
     let state = createDefaultState();
@@ -122,7 +127,7 @@
         const saved = JSON.parse(raw);
         if(saved && typeof saved === 'object') state = { ...state, ...saved };
       }catch(e){}
-      state.gameName = state.gameName || 'Dhumball Score Trekker';
+      state.gameName = state.gameName || 'Dhumball Score Tracker';
       state.players = Array.isArray(state.players) && state.players.length ? state.players : ['Player 1','Player 2','Player 3','Player 4'];
       state.rounds = Array.isArray(state.rounds) ? state.rounds : [];
       state.negatives = state.negatives && typeof state.negatives === 'object' ? state.negatives : {};
@@ -323,16 +328,54 @@
       try { if(navigator.share) await navigator.share({ title:state.gameName, text:summary }); else if(navigator.clipboard){ await navigator.clipboard.writeText(summary); alert('Summary copied to clipboard.'); } else alert(summary); } catch(e){}
     }
 
+    function updateInstallButton(){
+      const btn = document.getElementById('installAppBtn');
+      if(!btn) return;
+      btn.style.display = deferredInstallPrompt ? 'inline-flex' : 'none';
+    }
+
+    async function installApp(){
+      if(!deferredInstallPrompt) {
+        alert('Install is not available yet. On iPhone, use Share → Add to Home Screen. On Android/Desktop, wait a moment and try again.');
+        return;
+      }
+      deferredInstallPrompt.prompt();
+      try { await deferredInstallPrompt.userChoice; } catch(e){}
+      deferredInstallPrompt = null;
+      updateInstallButton();
+    }
+
+    function registerServiceWorker(){
+      if('serviceWorker' in navigator){
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+        });
+      }
+    }
+
+    window.addEventListener('beforeinstallprompt', (event) => {
+      event.preventDefault();
+      deferredInstallPrompt = event;
+      updateInstallButton();
+    });
+
+    window.addEventListener('appinstalled', () => {
+      deferredInstallPrompt = null;
+      updateInstallButton();
+      alert('Dhumball Score Tracker installed successfully.');
+    });
+
     function render(){
       document.getElementById('gameName').value = state.gameName || '';
       document.getElementById('faceValue').value = getFaceValue();
-      document.getElementById('saveStatus').textContent = hasSavedGame() ? 'Saved game available in this browser.' : 'No saved game yet.';
+      document.getElementById('saveStatus').textContent = hasSavedGame() ? 'Saved game available in this browser. Install it for one-tap access.' : 'No saved game yet. Install it for one-tap access.';
+      updateInstallButton();
       renderWinnerOptions(); renderLoserInputs(); renderPlayerSetup(); renderLiveTotals(); renderMetrics(); renderLeaderboard(); renderSettlement(); renderHistory();
     }
 
     document.getElementById('winnerSelect').addEventListener('change', (e) => { state.winner = e.target.value; saveState(); render(); });
     document.getElementById('gameName').addEventListener('input', (e) => { state.gameName = e.target.value; saveState(); });
-    document.getElementById('gameName').addEventListener('blur', (e) => { state.gameName = (e.target.value || '').trim() || 'Dhumball Score Trekker'; e.target.value = state.gameName; saveState(); render(); });
+    document.getElementById('gameName').addEventListener('blur', (e) => { state.gameName = (e.target.value || '').trim() || 'Dhumball Score Tracker'; e.target.value = state.gameName; saveState(); render(); });
     document.getElementById('faceValue').addEventListener('input', (e) => { state.faceValue = e.target.value; saveState(); renderLiveTotals(); });
     document.getElementById('saveRoundBtn').addEventListener('click', saveRound);
     document.getElementById('resetGameBtn').addEventListener('click', resetGame);
@@ -341,8 +384,10 @@
     document.getElementById('saveGameBtn').addEventListener('click', saveGame);
     document.getElementById('resumeGameBtn').addEventListener('click', resumeGame);
     document.getElementById('newGameBtn').addEventListener('click', newGame);
+    document.getElementById('installAppBtn').addEventListener('click', installApp);
     document.getElementById('addPlayerBtn').addEventListener('click', () => { state.players.push('Player ' + (state.players.length + 1)); saveState(); render(); });
 
+    registerServiceWorker();
     loadState(); render();
   </script>
 </body>
