@@ -200,8 +200,26 @@
       state.players.forEach((player, index) => {
         const div = document.createElement('div');
         div.className = 'player-box';
-        div.innerHTML = '<div class="row"><div class="avatar ' + avatarClass(index) + '">' + initials(player) + '</div><input value="' + player + '" /><button class="secondary"' + (state.players.length <= 2 ? ' disabled' : '') + '>Remove</button></div>';
+        div.innerHTML = '<div class="row"><div class="avatar ' + avatarClass(index) + '">' + initials(player) + '</div><input class="player-name-input" value="' + player + '" autocomplete="off" spellcheck="false" /><button class="secondary"' + (state.players.length <= 2 ? ' disabled' : '') + '>Remove</button></div>';
         const input = div.querySelector('input'); const btn = div.querySelector('button');
+
+        input.addEventListener('focus', () => input.select());
+        input.addEventListener('click', () => input.select());
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            const inputs = Array.from(document.querySelectorAll('.player-name-input'));
+            const currentIndex = inputs.indexOf(input);
+            const next = inputs[currentIndex + 1];
+            if (next) {
+              next.focus();
+              next.select();
+            } else {
+              input.blur();
+            }
+          }
+        });
+
         input.addEventListener('input', (e) => {
           let newName = formatName(e.target.value);
           if(newName.length > 24) newName = newName.slice(0, 24);
@@ -385,7 +403,19 @@
     document.getElementById('resumeGameBtn').addEventListener('click', resumeGame);
     document.getElementById('newGameBtn').addEventListener('click', newGame);
     document.getElementById('installAppBtn').addEventListener('click', installApp);
-    document.getElementById('addPlayerBtn').addEventListener('click', () => { state.players.push('Player ' + (state.players.length + 1)); saveState(); render(); });
+    document.getElementById('addPlayerBtn').addEventListener('click', () => {
+      state.players.push('Player ' + (state.players.length + 1));
+      saveState();
+      render();
+      setTimeout(() => {
+        const inputs = document.querySelectorAll('.player-name-input');
+        const last = inputs[inputs.length - 1];
+        if (last) {
+          last.focus();
+          last.select();
+        }
+      }, 50);
+    });
 
     registerServiceWorker();
     loadState(); render();
