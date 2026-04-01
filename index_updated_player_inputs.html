@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dhumball Score Tracker</title>
+  <meta name="theme-color" content="#2563eb" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <style>
+    :root { --bg:#f3f4f6; --card:#fff; --line:#e5e7eb; --text:#111827; --muted:#6b7280; --accent:#2563eb; --soft:#eff6ff; --good:#065f46; --goodbg:#ecfdf5; }
+    * { box-sizing:border-box; } body { margin:0; font-family:Arial,Helvetica,sans-serif; background:var(--bg); color:var(--text); }
+    .wrap { max-width:1100px; margin:0 auto; padding:18px; } .grid { display:grid; gap:16px; } .top-grid { grid-template-columns:1.3fr .9fr; } .main-grid { grid-template-columns:1fr 1fr; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:18px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+    h1,h2,h3,p { margin:0; } .eyebrow { color:var(--muted); font-size:12px; letter-spacing:.14em; text-transform:uppercase; margin-bottom:8px; }
+    .title { font-size:30px; font-weight:700; margin-bottom:8px; } .subtitle { color:var(--muted); font-size:14px; line-height:1.5; }
+    .metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:18px; } .metric { background:#f9fafb; border:1px solid var(--line); border-radius:14px; padding:12px; }
+    .metric-label { color:var(--muted); font-size:12px; margin-bottom:8px; text-transform:uppercase; } .metric-value { font-size:22px; font-weight:700; }
+    label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; } input,select { width:100%; height:46px; border:1px solid var(--line); border-radius:12px; padding:0 14px; font-size:16px; background:#fff; }
+    .row { display:flex; gap:12px; align-items:center; } .row > * { flex:1; } .btn-row { display:flex; flex-wrap:wrap; gap:10px; }
+    button { border:0; background:var(--accent); color:#fff; height:46px; border-radius:12px; padding:0 16px; font-size:15px; cursor:pointer; font-weight:600; } button.secondary { background:#fff; color:var(--text); border:1px solid var(--line); }
+    .pill { display:inline-block; font-size:12px; color:var(--muted); background:#f9fafb; border:1px solid var(--line); border-radius:999px; padding:6px 10px; } .spacer { height:14px; }
+    .player-inputs { display:grid; gap:10px; margin-top:8px; } .player-box { background:#f9fafb; border:1px solid var(--line); border-radius:14px; padding:12px; }
+    .leaderboard-item,.settlement-item,.history-item { border:1px solid var(--line); border-radius:14px; padding:14px; background:#fff; } .leaderboard-item { display:flex; justify-content:space-between; align-items:center; gap:12px; } .settlement-item { display:flex; justify-content:space-between; align-items:center; gap:16px; } .settlement-left{min-width:0;} .settlement-amount{font-size:24px;font-weight:700;white-space:nowrap;} .muted-note{color:var(--muted);font-size:13px;line-height:1.5;} .settlement-summary{display:grid;gap:10px;}
+    .leader-left { display:flex; align-items:center; gap:12px; min-width:0; } .avatar { width:42px; height:42px; border-radius:999px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; border:1px solid var(--line); flex-shrink:0; }
+    .a0 { background:#f3f4f6; color:#374151; } .a1 { background:#dbeafe; color:#1d4ed8; } .a2 { background:#d1fae5; color:#047857; } .a3 { background:#ede9fe; color:#6d28d9; } .a4 { background:#fef3c7; color:#b45309; } .a5 { background:#cffafe; color:#0f766e; }
+    .tiny { font-size:12px; color:var(--muted); } .big-score { font-size:26px; font-weight:700; } .soft-box { background:var(--soft); border:1px solid #bfdbfe; border-radius:16px; padding:14px; } .good-box { background:var(--goodbg); border:1px solid #a7f3d0; border-radius:16px; padding:14px; color:var(--good); }
+    .history-grid { display:grid; gap:10px; max-height:520px; overflow:auto; } .history-negatives { display:grid; gap:8px; grid-template-columns:repeat(2,1fr); margin-top:10px; } .history-cell { background:#f9fafb; border-radius:10px; padding:8px 10px; display:flex; justify-content:space-between; font-size:14px; }
+    .footer { text-align:center; color:var(--muted); font-size:12px; padding:10px 0 18px; }
+    @media (max-width:900px) { .top-grid,.main-grid,.metrics,.history-negatives { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="grid top-grid">
+      <div class="card">
+        <div class="eyebrow">Dhumball Score Tracker</div>
+        <div class="title">Simple web app for friends</div>
+        <div class="subtitle">Unlimited rounds, proper negative-total logic, face value multiplier, live leaderboard, and final settlement showing who owes whom.</div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">Rounds</div><div class="metric-value" id="roundCount">0</div></div>
+          <div class="metric"><div class="metric-label">Leader</div><div class="metric-value" id="leaderName">—</div></div>
+          <div class="metric"><div class="metric-label">Players</div><div class="metric-value" id="playerCount">4</div></div>
+          <div class="metric"><div class="metric-label">Face Value</div><div class="metric-value" id="faceValueMetric">1</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <label for="gameName">Game name</label>
+        <input id="gameName" value="Dhumball Score Tracker" />
+        <div class="spacer"></div>
+        <div class="row">
+          <div><label for="faceValue">Face value</label><input id="faceValue" type="number" min="1" step="1" value="1" /></div>
+          <div><label>Negative total only</label><div class="soft-box"><div class="big-score" id="negativeTotal">0</div></div></div>
+        </div>
+        <div class="spacer"></div>
+        <div class="good-box"><div class="tiny">Current winner receives</div><div class="big-score" id="liveTotal">+0</div></div>
+        <div class="spacer"></div>
+        <div id="saveStatus" class="tiny" aria-live="polite"></div>
+        <div class="spacer"></div>
+        <div class="btn-row"><button class="secondary" id="saveGameBtn">Save Game</button><button class="secondary" id="resumeGameBtn">Resume Saved Game</button><button class="secondary" id="newGameBtn">New Game</button><button class="secondary" id="installAppBtn" style="display:none;">Install App</button><button class="secondary" id="shareBtn">Share Summary</button><button class="secondary" id="exportBtn">Export Summary</button></div>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <div class="grid main-grid">
+      <div class="grid">
+        <div class="card">
+          <label for="winnerSelect">Winner</label>
+          <select id="winnerSelect"></select>
+          <div class="spacer"></div>
+          <div id="loserInputs" class="player-inputs"></div>
+          <div class="spacer"></div>
+          <div class="btn-row"><button id="saveRoundBtn">Save Round</button><button class="secondary" id="resetGameBtn">Reset Game</button></div>
+        </div>
+        <div class="card">
+          <div class="row" style="justify-content:space-between; align-items:center;"><div><h3>Player Setup</h3><div class="tiny">Rename players or add more</div></div><button class="secondary" id="addPlayerBtn">Add Player</button></div>
+          <div class="spacer"></div>
+          <div id="playerSetup" class="player-inputs"></div>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="card"><h3>Leaderboard</h3><div class="spacer"></div><div id="leaderboardList" class="grid"></div></div>
+        <div class="card"><h3>Final Settlement</h3><div class="spacer"></div><div class="muted-note">Shows who pays whom based on the latest full scoreboard.</div><div class="spacer"></div><div id="settlementSummary" class="settlement-summary"></div><div class="spacer"></div><div id="settlementList" class="grid"></div></div>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <div class="card"><h3>Round History</h3><div class="spacer"></div><div id="historyList" class="history-grid"></div></div>
+    <div class="footer">© Sonam T. Gurung - 2026</div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'dhumball-score-tracker-v7';
+    const LEGACY_STORAGE_KEYS = ['dhumal-score-trekker-negative-fix-v4', 'dhumal-score-trekker-negative-fix-v3'];
+    const paletteCount = 6;
+    let deferredInstallPrompt = null;
+
+    function createDefaultState(){
+      return { gameName:'Dhumball Score Tracker', faceValue:1, players:['Player 1','Player 2','Player 3','Player 4'], winner:'Player 1', negatives:{}, rounds:[] };
+    }
+
+    let state = createDefaultState();
+
+    function initials(name){ return name.split(' ').filter(Boolean).slice(0,2).map(p => p[0].toUpperCase()).join(''); }
+    function formatName(name){
+      return String(name || '')
+        .replace(/\s{2,}/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase());
+    }
+    function avatarClass(index){ return 'a' + (index % paletteCount); }
+    function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    function getSavedRaw(){
+      const current = localStorage.getItem(STORAGE_KEY);
+      if(current) return current;
+      for(const key of LEGACY_STORAGE_KEYS){
+        const legacy = localStorage.getItem(key);
+        if(legacy){
+          localStorage.setItem(STORAGE_KEY, legacy);
+          return legacy;
+        }
+      }
+      return null;
+    }
+    function loadState(){
+      const raw = getSavedRaw();
+      if(!raw) return;
+      try{
+        const saved = JSON.parse(raw);
+        if(saved && typeof saved === 'object') state = { ...state, ...saved };
+      }catch(e){}
+      state.gameName = state.gameName || 'Dhumball Score Tracker';
+      state.players = Array.isArray(state.players) && state.players.length ? state.players : ['Player 1','Player 2','Player 3','Player 4'];
+      state.rounds = Array.isArray(state.rounds) ? state.rounds : [];
+      state.negatives = state.negatives && typeof state.negatives === 'object' ? state.negatives : {};
+      if(!state.players.includes(state.winner)) state.winner = state.players[0];
+    }
+    function hasSavedGame(){ return !!getSavedRaw(); }
+    function saveGame(){ saveState(); alert('Game saved successfully.'); }
+    function resumeGame(){ if(!hasSavedGame()){ alert('No saved game found.'); return; } loadState(); render(); alert('Saved game resumed.'); }
+    function newGame(){ if(!confirm('Start a new game? Your current saved progress will be replaced.')) return; state = createDefaultState(); saveState(); render(); }
+    function getLosers(){ return state.players.filter(p => p !== state.winner); }
+    function getFaceValue(){ const n = Number(state.faceValue || 1); return Number.isNaN(n) || n <= 0 ? 1 : n; }
+
+    function getNegativeTotal(){
+      return getLosers().reduce((sum, player) => {
+        let val = Number(state.negatives[player] || 0);
+        if (Number.isNaN(val)) return sum;
+        if (val > 0) val = -val;
+        return sum + val;
+      }, 0);
+    }
+
+    function getNegativeTotalAbs(){ return Math.abs(getNegativeTotal()); }
+    function getLiveWinnerTotal(){ return getNegativeTotalAbs() * getFaceValue(); }
+
+    function getScoreboard(){
+      const totals = Object.fromEntries(state.players.map(p => [p, 0]));
+      state.rounds.forEach(round => {
+        totals[round.winner] += round.winnerPoints;
+        Object.entries(round.negatives).forEach(([name, value]) => { totals[name] += value; });
+      });
+      return state.players.map(name => ({ name, total: totals[name] || 0 })).sort((a,b) => b.total - a.total).map((row,idx) => ({ ...row, rank: idx + 1 }));
+    }
+
+    function getSettlement(){
+      const scoreboard = getScoreboard();
+      const debtors = scoreboard.filter(r => r.total < 0).map(r => ({ name:r.name, amount:Math.abs(r.total) })).sort((a,b) => b.amount - a.amount);
+      const creditors = scoreboard.filter(r => r.total > 0).map(r => ({ name:r.name, amount:r.total })).sort((a,b) => b.amount - a.amount);
+      const payments = []; let i = 0, j = 0;
+      while(i < debtors.length && j < creditors.length){
+        const amount = Math.min(debtors[i].amount, creditors[j].amount);
+        if(amount > 0) payments.push({ from:debtors[i].name, to:creditors[j].name, amount });
+        debtors[i].amount -= amount; creditors[j].amount -= amount;
+        if(debtors[i].amount === 0) i++; if(creditors[j].amount === 0) j++;
+      }
+      return payments;
+    }
+
+    function renderWinnerOptions(){
+      const select = document.getElementById('winnerSelect'); select.innerHTML = '';
+      state.players.forEach(player => {
+        const opt = document.createElement('option');
+        opt.value = player; opt.textContent = player; if(player === state.winner) opt.selected = true;
+        select.appendChild(opt);
+      });
+    }
+
+    function renderLoserInputs(){
+      const box = document.getElementById('loserInputs'); box.innerHTML = '';
+      getLosers().forEach(player => {
+        const div = document.createElement('div');
+        div.className = 'player-box';
+        div.innerHTML = '<label>' + player + ' loss</label><input type="number" inputmode="numeric" placeholder="Enter losing points" value="' + (state.negatives[player] || '') + '" />';
+        div.querySelector('input').addEventListener('input', (e) => { state.negatives[player] = e.target.value; saveState(); renderLiveTotals(); });
+        box.appendChild(div);
+      });
+    }
+
+    function renderPlayerSetup(){
+      const box = document.getElementById('playerSetup'); box.innerHTML = '';
+      state.players.forEach((player, index) => {
+        const div = document.createElement('div');
+        div.className = 'player-box';
+        div.innerHTML = '<div class="row"><div class="avatar ' + avatarClass(index) + '">' + initials(player) + '</div><input class="player-name-input" value="' + player + '" autocomplete="off" spellcheck="false" /><button class="secondary"' + (state.players.length <= 2 ? ' disabled' : '') + '>Remove</button></div>';
+        const input = div.querySelector('input'); const btn = div.querySelector('button');
+
+        input.addEventListener('focus', () => input.select());
+        input.addEventListener('click', () => input.select());
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            const inputs = Array.from(document.querySelectorAll('.player-name-input'));
+            const currentIndex = inputs.indexOf(input);
+            const next = inputs[currentIndex + 1];
+            if (next) {
+              next.focus();
+              next.select();
+            } else {
+              input.blur();
+            }
+          }
+        });
+
+        input.addEventListener('input', (e) => {
+          let newName = formatName(e.target.value);
+          if(newName.length > 24) newName = newName.slice(0, 24);
+          e.target.value = newName;
+          state.players[index] = newName;
+          saveState();
+        });
+        input.addEventListener('blur', () => {
+          const oldName = player;
+          let finalName = formatName(input.value);
+          if(finalName.length > 24) finalName = finalName.slice(0, 24);
+          finalName = finalName || ('Player ' + (index + 1));
+          input.value = finalName;
+          state.players[index] = finalName;
+          if(state.winner === oldName) state.winner = finalName;
+          if(state.negatives[oldName] !== undefined && oldName !== finalName){ state.negatives[finalName] = state.negatives[oldName]; delete state.negatives[oldName]; }
+          state.rounds = state.rounds.map(round => ({
+            ...round,
+            winner: round.winner === oldName ? finalName : round.winner,
+            negatives: Object.fromEntries(Object.entries(round.negatives).map(([k,v]) => [k === oldName ? finalName : k, v])),
+            baseNegatives: round.baseNegatives ? Object.fromEntries(Object.entries(round.baseNegatives).map(([k,v]) => [k === oldName ? finalName : k, v])) : round.baseNegatives
+          }));
+          saveState(); render();
+        });
+        btn.addEventListener('click', () => {
+          if(state.players.length <= 2) return;
+          const removed = state.players[index];
+          state.players.splice(index, 1);
+          if(state.winner === removed) state.winner = state.players[0] || '';
+          delete state.negatives[removed];
+          saveState(); render();
+        });
+        box.appendChild(div);
+      });
+    }
+
+    function renderLiveTotals(){
+      document.getElementById('negativeTotal').textContent = getNegativeTotalAbs().toLocaleString();
+      document.getElementById('liveTotal').textContent = '+' + getLiveWinnerTotal().toLocaleString();
+      document.getElementById('faceValueMetric').textContent = getFaceValue().toLocaleString();
+    }
+
+    function renderMetrics(){
+      const scoreboard = getScoreboard();
+      document.getElementById('roundCount').textContent = state.rounds.length;
+      document.getElementById('leaderName').textContent = scoreboard[0] ? scoreboard[0].name : '—';
+      document.getElementById('playerCount').textContent = state.players.length;
+    }
+
+    function renderLeaderboard(){
+      const box = document.getElementById('leaderboardList'); box.innerHTML = '';
+      getScoreboard().forEach((row) => {
+        const playerIndex = state.players.findIndex(p => p === row.name);
+        const div = document.createElement('div');
+        div.className = 'leaderboard-item';
+        div.innerHTML = '<div class="leader-left"><div class="avatar ' + avatarClass(playerIndex) + '">' + initials(row.name) + '</div><div><div><strong>' + row.name + '</strong></div><div class="tiny">Rank ' + row.rank + '</div></div></div><div class="big-score">' + row.total.toLocaleString() + '</div>';
+        box.appendChild(div);
+      });
+    }
+
+    function renderSettlement(){
+      const box = document.getElementById('settlementList'); box.innerHTML = '';
+      const summaryBox = document.getElementById('settlementSummary'); summaryBox.innerHTML = '';
+      const settlement = getSettlement();
+      const scoreboard = getScoreboard();
+      const payers = scoreboard.filter(row => row.total < 0).length;
+      const receivers = scoreboard.filter(row => row.total > 0).length;
+      const totalMoved = settlement.reduce((sum, item) => sum + item.amount, 0);
+      const summary = document.createElement('div');
+      summary.className = settlement.length ? 'soft-box' : 'good-box';
+      summary.innerHTML = settlement.length
+        ? '<strong>' + settlement.length + '</strong> payment' + (settlement.length === 1 ? '' : 's') + ' needed · <strong>' + payers + '</strong> payer' + (payers === 1 ? '' : 's') + ' · <strong>' + receivers + '</strong> receiver' + (receivers === 1 ? '' : 's') + ' · Total moved: <strong>' + totalMoved.toLocaleString() + '</strong>'
+        : 'All balances are settled.';
+      summaryBox.appendChild(summary);
+      if(!settlement.length){ return; }
+      settlement.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'settlement-item';
+        div.innerHTML = '<div class="settlement-left"><div><strong>' + item.from + '</strong> pays <strong>' + item.to + '</strong></div><div class="tiny" style="margin-top:6px;">Direct settlement</div></div><div class="settlement-amount">Rs. ' + item.amount.toLocaleString() + '</div>';
+        box.appendChild(div);
+      });
+    }
+
+    function renderHistory(){
+      const box = document.getElementById('historyList'); box.innerHTML = '';
+      const recent = [...state.rounds].reverse();
+      if(!recent.length){ const div = document.createElement('div'); div.className = 'soft-box'; div.textContent = 'No rounds yet.'; box.appendChild(div); return; }
+      recent.forEach(round => {
+        const div = document.createElement('div');
+        div.className = 'history-item';
+        const negativesHtml = Object.entries(round.baseNegatives || {}).map(([name, value]) => '<div class="history-cell"><span>' + name + '</span><span>' + value + '</span></div>').join('');
+        div.innerHTML = '<div class="row" style="justify-content:space-between; align-items:flex-start;"><div><div><strong>Round ' + round.id + '</strong></div><div class="tiny">Winner: ' + round.winner + '</div><div class="tiny">Negative total: ' + Math.abs(round.negativeTotal) + ' | Face value: ' + round.faceValue + '</div><div class="tiny">' + round.createdAt + '</div></div><div class="pill">+' + round.winnerPoints.toLocaleString() + '</div></div><div class="history-negatives">' + negativesHtml + '</div><div class="spacer"></div><button class="secondary">Delete Round</button>';
+        div.querySelector('button').addEventListener('click', () => { state.rounds = state.rounds.filter(r => r.id !== round.id).map((r, i) => ({ ...r, id: i + 1 })); saveState(); render(); });
+        box.appendChild(div);
+      });
+    }
+
+    function saveRound(){
+      const losers = getLosers(); const baseNegatives = {}; const multipliedNegatives = {}; let negativeTotal = 0; const fv = getFaceValue();
+      losers.forEach(player => {
+        let raw = Number(state.negatives[player] || 0);
+        if(Number.isNaN(raw)) return;
+        if(raw > 0) raw = -raw;
+        baseNegatives[player] = raw;
+        multipliedNegatives[player] = raw * fv;
+        negativeTotal += raw;
+      });
+      const round = { id: state.rounds.length + 1, winner: state.winner, faceValue: fv, negativeTotal: negativeTotal, baseNegatives: baseNegatives, negatives: multipliedNegatives, winnerPoints: Math.abs(negativeTotal) * fv, totalNegative: Math.abs(negativeTotal) * fv, createdAt: new Date().toLocaleString() };
+      state.rounds.push(round); state.negatives = {}; saveState(); render();
+    }
+
+    function resetGame(){ if(!confirm('Reset all rounds for the current game?')) return; state.rounds = []; state.negatives = {}; saveState(); render(); }
+
+    function exportSummary(){
+      const scoreboard = getScoreboard(); const settlement = getSettlement();
+      const lines = ['Game: ' + state.gameName, 'Face value: ' + getFaceValue(), 'Rounds played: ' + state.rounds.length, '', 'Leaderboard:', ...scoreboard.map(r => r.rank + '. ' + r.name + ': ' + r.total), '', 'Settlement:', ...(settlement.length ? settlement.map(s => s.from + ' pays ' + s.to + ' ' + s.amount) : ['All balances are settled.'])];
+      const blob = new Blob([lines.join('\n')], { type:'text/plain;charset=utf-8' }); const url = URL.createObjectURL(blob); const a = document.createElement('a');
+      a.href = url; a.download = (state.gameName || 'dhumball_game').replace(/\s+/g, '_') + '_summary.txt'; a.click(); URL.revokeObjectURL(url);
+    }
+
+    async function shareSummary(){
+      const scoreboard = getScoreboard(); const settlement = getSettlement();
+      const summary = [state.gameName, 'Face value: ' + getFaceValue(), 'Rounds: ' + state.rounds.length, ...scoreboard.map(r => r.rank + '. ' + r.name + ' — ' + r.total), settlement.length ? 'Settlement: ' + settlement.map(s => s.from + ' pays ' + s.to + ' ' + s.amount).join('; ') : 'Settlement: all balances are settled.'].join('\n');
+      try { if(navigator.share) await navigator.share({ title:state.gameName, text:summary }); else if(navigator.clipboard){ await navigator.clipboard.writeText(summary); alert('Summary copied to clipboard.'); } else alert(summary); } catch(e){}
+    }
+
+    function updateInstallButton(){
+      const btn = document.getElementById('installAppBtn');
+      if(!btn) return;
+      btn.style.display = deferredInstallPrompt ? 'inline-flex' : 'none';
+    }
+
+    async function installApp(){
+      if(!deferredInstallPrompt) {
+        alert('Install is not available yet. On iPhone, use Share → Add to Home Screen. On Android/Desktop, wait a moment and try again.');
+        return;
+      }
+      deferredInstallPrompt.prompt();
+      try { await deferredInstallPrompt.userChoice; } catch(e){}
+      deferredInstallPrompt = null;
+      updateInstallButton();
+    }
+
+    function registerServiceWorker(){
+      if('serviceWorker' in navigator){
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+        });
+      }
+    }
+
+    window.addEventListener('beforeinstallprompt', (event) => {
+      event.preventDefault();
+      deferredInstallPrompt = event;
+      updateInstallButton();
+    });
+
+    window.addEventListener('appinstalled', () => {
+      deferredInstallPrompt = null;
+      updateInstallButton();
+      alert('Dhumball Score Tracker installed successfully.');
+    });
+
+    function render(){
+      document.getElementById('gameName').value = state.gameName || '';
+      document.getElementById('faceValue').value = getFaceValue();
+      document.getElementById('saveStatus').textContent = hasSavedGame() ? 'Saved game available in this browser. Install it for one-tap access.' : 'No saved game yet. Install it for one-tap access.';
+      updateInstallButton();
+      renderWinnerOptions(); renderLoserInputs(); renderPlayerSetup(); renderLiveTotals(); renderMetrics(); renderLeaderboard(); renderSettlement(); renderHistory();
+    }
+
+    document.getElementById('winnerSelect').addEventListener('change', (e) => { state.winner = e.target.value; saveState(); render(); });
+    document.getElementById('gameName').addEventListener('input', (e) => { state.gameName = e.target.value; saveState(); });
+    document.getElementById('gameName').addEventListener('blur', (e) => { state.gameName = (e.target.value || '').trim() || 'Dhumball Score Tracker'; e.target.value = state.gameName; saveState(); render(); });
+    document.getElementById('faceValue').addEventListener('input', (e) => { state.faceValue = e.target.value; saveState(); renderLiveTotals(); });
+    document.getElementById('saveRoundBtn').addEventListener('click', saveRound);
+    document.getElementById('resetGameBtn').addEventListener('click', resetGame);
+    document.getElementById('exportBtn').addEventListener('click', exportSummary);
+    document.getElementById('shareBtn').addEventListener('click', shareSummary);
+    document.getElementById('saveGameBtn').addEventListener('click', saveGame);
+    document.getElementById('resumeGameBtn').addEventListener('click', resumeGame);
+    document.getElementById('newGameBtn').addEventListener('click', newGame);
+    document.getElementById('installAppBtn').addEventListener('click', installApp);
+    document.getElementById('addPlayerBtn').addEventListener('click', () => {
+      state.players.push('Player ' + (state.players.length + 1));
+      saveState();
+      render();
+      setTimeout(() => {
+        const inputs = document.querySelectorAll('.player-name-input');
+        const last = inputs[inputs.length - 1];
+        if (last) {
+          last.focus();
+          last.select();
+        }
+      }, 50);
+    });
+
+    registerServiceWorker();
+    loadState(); render();
+  </script>
+</body>
+</html>
